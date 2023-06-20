@@ -12,11 +12,31 @@ struct ContentView: View {
     @State private var scoreTitle = ""
     @State private var score = 0
     @State private var showingQuestionCount = false
-    @State private var questionCount = 1
+    @State private var questionCounter = 1
     
-    @State private var countries = ["Estonia", "France", "Germany", "Ireland", "Italy", "Nigeria", "Poland", "Russia", "Spain", "UK", "US"].shuffled()
+    @State private var countries = allCountries.shuffled()
     
     @State private var correctAnswer = Int.random(in: 0...2)
+    
+    @State private var selectedFlag = -1 // -1 represents no flag selected
+    
+    static let allCountries = ["Estonia", "France", "Germany", "Ireland", "Italy", "Nigeria", "Poland", "Russia", "Spain", "UK", "US"]
+    
+    // Struct that conforms to the View protocol.
+    struct FlagForm: View {
+        var country: String
+        
+        init(_ countries: [String], _ number: Int) {
+            self.country = countries[number]
+        }
+        
+        // Computed property named 'body' that is required by the View protocol
+        var body: some View {
+            Image(country)
+                .renderingMode(.original)
+                .shadow(radius: 10)
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -47,10 +67,15 @@ struct ContentView: View {
                         Button {
                             flagTapped(number)
                         } label: {
-                            Image(countries[number])
-                                .renderingMode(.original)
-                                .shadow(radius: 10)
+                            FlagForm(countries, number)
                         }
+                        .rotation3DEffect(
+                            .degrees(selectedFlag == number ? 360 : 0),
+                            axis: (x: 0.0, y: 1.0, z: 0.0)
+                        )
+                        .opacity(selectedFlag == -1 || selectedFlag == number ? 1 : 0.25)
+                        .scaleEffect(selectedFlag == correctAnswer && selectedFlag == number ? 1.5 : 1)
+                        .animation(.default, value: selectedFlag)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -82,6 +107,8 @@ struct ContentView: View {
     }
     
     func flagTapped(_ number: Int) {
+        selectedFlag = number
+        
         if number == correctAnswer {
             scoreTitle = "Correct!"
             score += 1
@@ -92,7 +119,7 @@ struct ContentView: View {
             }
         }
         
-        if questionCount == 8 {
+        if questionCounter == 8 {
             showingQuestionCount = true
         } else {
             showingScore = true
@@ -100,17 +127,16 @@ struct ContentView: View {
     }
     
     func askQuestion() {
-        questionCount += 1
+        countries.remove(at: correctAnswer)
         countries.shuffle()
         correctAnswer = Int.random(in: 0...2)
+        questionCounter += 1
+        selectedFlag = -1
     }
     
     func resetGame() {
-        showingScore = false
-        scoreTitle = ""
         score = 0
-        showingQuestionCount = false
-        questionCount = 0
+        questionCounter = 0
         askQuestion()
     }
 }
